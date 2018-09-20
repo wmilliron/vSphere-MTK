@@ -1,2 +1,2 @@
-# vSphere-PMTK
-vSphere Post-Migration Toolkit
+# vSphere-MTK
+vSphere Migration Toolkit
