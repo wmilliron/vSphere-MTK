@@ -158,11 +158,41 @@ attributes disk clear readonly
 function Get-IPInfo {
     [cmdletbinding()]
     param (
-     [parameter(ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)][string[]]$ComputerName = $env:computername
+     [Parameter(ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)][String[]]$ComputerName = $env:computername,
+     [Parameter()][String[]]$ExportPath
     )
     
     begin {}
     process {
+        #Sets the output directory based on parameter input, if any
+        $CurrentDir = ((Get-Location).Path + "\")
+        if ($ExportPath){
+            if ([string]::IsNullOrWhiteSpace($ExportPath)){
+                Write-Warning -Message "The specified ExportPath is invalid. The file will be exported to $CurrentDir"
+                $OutputDir = $CurrentDir
+            }
+            else{
+                if (Test-Path $ExportPath) {
+                    $ExportPath
+                    $CheckSlash = $ExportPath.subString($ExportPath.Length - 1)
+                    write-host "Check Slash is $CheckSlash"
+
+                    if ($CheckSlash -like "*/" -or $CheckSlash -like "*\"){
+                        $OutputDir = $ExportPath
+                    }
+                    else{
+                        $OutputDir = $ExportPath + "\"
+                    }
+                }
+                else{
+                    Write-Warning -Message "The specified ExportPatch cannot be reached. The file will be exported to $CurrentDir"
+                    $OutputDir = $CurrentDir
+                }
+            }
+        }
+        else{
+            $OutputDir = $CurrentDir
+        }
      foreach ($Computer in $ComputerName) {
       if(Test-Connection -ComputerName $Computer -Count 1 -ea 0) {
        try {
@@ -203,7 +233,10 @@ function Get-IPInfo {
             $Output += $OutputObj
           }
         }
-      $Output | Export-Csv -Path .\$ComputerName-IPInfo.csv -NoTypeInformation
+        write-host $OutputDir
+        $OutputFile = ($OutputDir + "$ComputerName-IPInfo.csv").ToString()
+        write-host $OutputFile
+        $Output | Export-Csv -Path $OutputFile -NoTypeInformation
       }
      }
     }
