@@ -168,30 +168,29 @@ function Get-IPInfo {
         $CurrentDir = ((Get-Location).Path + "\")
         if ($ExportPath){
             if ([string]::IsNullOrWhiteSpace($ExportPath)){
-                Write-Warning -Message "The specified ExportPath is invalid. The file will be exported to $CurrentDir"
-                $OutputDir = $CurrentDir
+                $ExportPath = $CurrentDir
+                Write-Warning -Message "The specified ExportPath is invalid. The file will be exported to $ExportPath"
             }
             else{
                 if (Test-Path $ExportPath) {
-                    $ExportPath
-                    $CheckSlash = $ExportPath.subString($ExportPath.Length - 1)
-                    write-host "Check Slash is $CheckSlash"
-
-                    if ($CheckSlash -like "*/" -or $CheckSlash -like "*\"){
-                        $OutputDir = $ExportPath
+                    if ($ExportPath -like "*/" -or $ExportPath -like "*\"){
+                        write-host "IP Configration(s) will be exported to $ExportPath"
                     }
                     else{
-                        $OutputDir = $ExportPath + "\"
+                        $ExportPath = ($ExportPath).Trim() + "\"
+                        write-host "IP Configration(s) will be exported to $ExportPath"
                     }
                 }
                 else{
-                    Write-Warning -Message "The specified ExportPatch cannot be reached. The file will be exported to $CurrentDir"
-                    $OutputDir = $CurrentDir
+                    Write-Warning -Message "The specified ExportPath cannot be reached. The file will be exported to $CurrentDir"
+                    $ExportPath = $CurrentDir
+                    write-host "IP Configration(s) will be exported to $ExportPath"
                 }
             }
         }
         else{
-            $OutputDir = $CurrentDir
+            $ExportPath = $CurrentDir
+            write-host "IP Configration(s) will be exported to $ExportPath"
         }
      foreach ($Computer in $ComputerName) {
       if(Test-Connection -ComputerName $Computer -Count 1 -ea 0) {
@@ -233,10 +232,7 @@ function Get-IPInfo {
             $Output += $OutputObj
           }
         }
-        write-host $OutputDir
-        $OutputFile = ($OutputDir + "$ComputerName-IPInfo.csv").ToString()
-        write-host $OutputFile
-        $Output | Export-Csv -Path $OutputFile -NoTypeInformation
+        $Output | Export-Csv -Path ($ExportPath.Trim() + "$Computer-IPInfo.csv") -NoTypeInformation
       }
      }
     }
