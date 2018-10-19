@@ -47,6 +47,17 @@ function Set-IPInfo{
             return
         }
 
+        #$Adapters = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object{$_.IPEnabled -eq $true}
+        Foreach ($row in $IPData){
+            $name = ($row.NICName)
+            $ip = ($row.IPAddress)
+            $subnet = ($row.Subnetmask)
+            $gateway = ($row.Gateway)
+            $DNSServers = ($row.DNSServers) 
+
+
+        }
+
 
 
 
