@@ -39,20 +39,14 @@ function Set-IPInfo{
             Write-Error -Message "The number of adapters required by the provided configuration file does not match the number of adapters on the VM."
             return
         }
-        <#
-        elseif ($NICCount -eq $AdapterCount){
-
-        }
-        else{
-            Write-Error -Message "Unable to compare the number of NICs present to the number required."
-            return
-        }
-#>
         #Harvests the Network Adapter data from the VM
+        $cred = Get-Credential -Message "Please enter credentials with administrative access to the virtual machine's operating system."
         $Invoke = @{
             VM = "$VMName"
             ScriptType = 'PowerShell'
             ScriptText = $code
+            GuestUser = $cred.UserName
+            GuestPassword = $cred.Password
         }
         try{
             $code = @'
@@ -83,10 +77,7 @@ function Set-IPInfo{
         catch{
             Write-Error -Message "Unable to invoke the code to set network configuration."
             return
-        }
-        
-        #Pass code and parameters to Invoke-VMScriptPlus
-        $cred = Get-Credential -Message "Please enter credentials with administrative access to the virtual machine's operating system."
+        }   
     }
     end{}
 }
