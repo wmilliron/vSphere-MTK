@@ -39,6 +39,7 @@ function Set-IPInfo{
             Write-Error -Message "The number of adapters required by the provided configuration file does not match the number of adapters on the VM."
             return
         }
+        <#
         elseif ($NICCount -eq $AdapterCount){
 
         }
@@ -46,30 +47,46 @@ function Set-IPInfo{
             Write-Error -Message "Unable to compare the number of NICs present to the number required."
             return
         }
-
-        #$Adapters = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object{$_.IPEnabled -eq $true}
-        Foreach ($row in $IPData){
-            $name = ($row.NICName)
-            $ip = ($row.IPAddress)
-            $subnet = ($row.Subnetmask)
-            $gateway = ($row.Gateway)
-            $DNSServers = ($row.DNSServers) 
-
-
-        }
-
-
-
-
-        #Pass code and parameters to Invoke-VMScriptPlus
-        $cred = Get-Credential -Message "Please enter credentials with administrative access to the virtual machine's operating system."
+#>
+        #Harvests the Network Adapter data from the VM
         $Invoke = @{
-            VM = $VMName
+            VM = "$VMName"
             ScriptType = 'PowerShell'
             ScriptText = $code
-            GuestCredential = $cred
         }
-        Invoke-VMScriptPlus @Invoke
+        try{
+            $code = @'
+            Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object{$_.IPEnabled -eq $true}
+'@
+
+            $Adapters = Invoke-VMScriptPlus @Invoke -ErrorAction Stop 
+        }
+        catch{
+            Write-Error -Message "Unable to collect the NIC information from the VM"
+            return
+        }
+        try{
+            for ($i=0; $i -le $Adapters.count; $i++){
+                $ip = ($IPData[$i].IPAddress)
+                $subnet = ($IPData[$i].SubnetMask)
+                $gateway = ($IPData[$i].Gateway)
+                $dns = ($IPData[$i].DNSServers)
+                $code = @"
+                $Adapters[$i].EnableStatic($ip,$subnet)
+                $Adapters[$i].SetGateways($gateway)
+                $Adapters[$i].SetDNSServerSearchOrder($dns)
+                $Adapters[$i].SetDynamicDNSRegistration("TRUE")
+"@
+                Invoke-VMScriptPlus @Invoke -ErrorAction Stop
+            }
+        }
+        catch{
+            Write-Error -Message "Unable to invoke the code to set network configuration."
+            return
+        }
+        
+        #Pass code and parameters to Invoke-VMScriptPlus
+        $cred = Get-Credential -Message "Please enter credentials with administrative access to the virtual machine's operating system."
     }
     end{}
 }
