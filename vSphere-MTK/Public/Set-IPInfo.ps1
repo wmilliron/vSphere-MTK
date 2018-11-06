@@ -59,8 +59,14 @@ function Set-IPInfo{
             Write-Error -Message "Unable to collect the NIC information from the VM"
             return
         }
+        #Compares the extracted adapter count to the VM-NIC count before proceeding.
+        if ($NICCount -ne $Adapters.count){
+            Write-Error -Message "The number of adapters required by the provided configuration file does not match the number of adapters queried from inside the Windows vm."
+            return
+        }
+        #Attempts to set IP configuration
         try{
-            for ($i=0; $i -le $Adapters.count; $i++){
+            for ($i=0; $i -lt $Adapters.count; $i++){
                 $ip = ($IPData[$i].IPAddress)
                 $subnet = ($IPData[$i].SubnetMask)
                 $gateway = ($IPData[$i].Gateway)
