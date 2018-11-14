@@ -55,12 +55,12 @@ function Set-IPInfo{
 
         $Adapters = (Invoke-VMScriptPlus @Invoke -ErrorAction Stop).ScriptOutput | ConvertFrom-Csv
         
+        #The below values are used for debugging
         #$nl = [System.Environment]::NewLine
         #$Adapters = ($Adapters).Trim()
         #$Adapters = ($Adapters -Split("$nl"))
-        $OSNICCount = $Adapters.count
+        #$OSNICCount = $Adapters.count
 
-        #The below values are used for debugging
         #write-host $adapters
         #write-host "Config file NICCount is $NICCount"
         #write-host "Vsphere adapter count is $AdapterCount"
