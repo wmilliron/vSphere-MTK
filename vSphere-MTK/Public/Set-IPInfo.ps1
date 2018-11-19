@@ -5,19 +5,22 @@ function Set-IPInfo{
         [Parameter()][String[]]$ConfigurationPath
     )
     begin{
+        # Performs connection and parameter checks before proceeding with function
+        
         Import-Module VMware.PowerCLI
+    
         #Ensure connection to vSphere
         if ($global:DefaultVIServers.IsConnected -eq $True){
             $VCName = $global:DefaultVIServers.Name
-            Write-Host "Already connected to $VCName. Continuing..."
+            Write-Information -MessageData "Connected to $VCName."
         }
         else {
             Connect-VIServer
         }
         #Verify VM Exists
         $Exists = Get-Vm -name $VMName -ErrorAction SilentlyContinue
-        if ($Exists){  
-            Write-Host "$VMName found."
+        if ($Exists){
+            Write-Information -MessageData "The VM $VMName exists in $VCName."
         }  
         else {  
             Write-Host "VM named $VMName does not exist. Exiting..." -ForegroundColor Red
@@ -30,7 +33,7 @@ function Set-IPInfo{
             $IPData = Import-Csv -Path $ConfigurationPath
         }
         else{
-            Write-Error -Message "$ConfigurationPath cannot be reached. Exiting."
+            Write-Error -Message "$ConfigurationPath cannot be reached. Exiting..."
             Return
         }
 
@@ -41,7 +44,7 @@ function Set-IPInfo{
             return
         }
         #Harvests the Network Adapter data from the VM
-        $cred = Get-Credential -Message "Please enter credentials with administrative access to the virtual machine's operating system."
+        $cred = Get-Credential -Message "Please enter credentials with administrative access to $VMName."
         $code = @'
             Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object{$_.IPEnabled -eq $true} | Select-Object Index,Description,IPAddress,IPEnabled | ConvertTo-CSV -NoTypeInformation
 '@
@@ -56,15 +59,12 @@ function Set-IPInfo{
         $Adapters = (Invoke-VMScriptPlus @Invoke -ErrorAction Stop).ScriptOutput | ConvertFrom-Csv
         
         #The below values are used for debugging
-        #$nl = [System.Environment]::NewLine
-        #$Adapters = ($Adapters).Trim()
-        #$Adapters = ($Adapters -Split("$nl"))
-        #$OSNICCount = $Adapters.count
+        $OSNICCount = $Adapters.count
+        Write-Information -MessageData "Config file NICCount is $NICCount"
+        Write-Information -MessageData "Vsphere adapter count is $AdapterCount"
+        Write-Information -MessageData "OS NIC count is $OSNICCount"
+        Write-Information -MessageData  "NIC Data returned from the VMs OS: `n $adapters"
 
-        #write-host $adapters
-        #write-host "Config file NICCount is $NICCount"
-        #write-host "Vsphere adapter count is $AdapterCount"
-        #write-host "OS NIC count is $OSNICCount"
 
         #Compares the extracted adapter count to the VM-NIC count before proceeding.
         if ($NICCount -ne $Adapters.count){
@@ -75,6 +75,7 @@ function Set-IPInfo{
         #Attempts to set IP configuration
         try{
             for ($i=0; $i -lt $Adapters.count; $i++){
+                $NICName = ($IPData[$i].NICName)
                 #Puts the IP information into a string that looks like an array to be passed as a variable through the Invoke
                 $ip = ($IPData[$i].IPAddress)
                 $IPs = ($ip -split ",")
@@ -97,9 +98,12 @@ function Set-IPInfo{
 
                 $code = @"
                 `$adapter = Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object{`$_.Index -eq $AdapterIndex}
+                `$OSNICName = Get-WmiObject Win32_NetworkAdapter | Where-Object {`$_.DeviceID -eq $AdapterIndex}
+                `$OSNICName.NetConnectionID = "$NICName"
+                `$OSNICName.put()
                 `$OSAdapterIndex = `$adapter.Index 
-                write-host "OS index is `$OSAdapterIndex"
-                write-host "Injected index is $AdapterIndex"
+                Write-Output "OS NIC index is `$OSAdapterIndex"
+                Write-Output "Injected NIC index is $AdapterIndex"
                 `$adapter.EnableStatic($ip,$mask)
                 `$adapter.SetGateways("$gateway")
                 `$adapter.SetDNSServerSearchOrder(@($dns))
