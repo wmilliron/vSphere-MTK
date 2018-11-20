@@ -12,7 +12,7 @@ function Set-IPInfo{
         #Ensure connection to vSphere
         if ($global:DefaultVIServers.IsConnected -eq $True){
             $VCName = $global:DefaultVIServers.Name
-            Write-Information -MessageData "Connected to $VCName."
+            Write-Verbose -Message "Connected to $VCName."
         }
         else {
             Connect-VIServer
@@ -20,7 +20,7 @@ function Set-IPInfo{
         #Verify VM Exists
         $Exists = Get-Vm -name $VMName -ErrorAction SilentlyContinue
         if ($Exists){
-            Write-Information -MessageData "The VM $VMName exists in $VCName."
+            Write-Verbose -Message "The VM $VMName exists in $VCName."
         }  
         else {  
             Write-Host "VM named $VMName does not exist. Exiting..." -ForegroundColor Red
@@ -60,10 +60,10 @@ function Set-IPInfo{
         
         #The below values are used for debugging
         $OSNICCount = $Adapters.count
-        Write-Information -MessageData "Config file NICCount is $NICCount"
-        Write-Information -MessageData "Vsphere adapter count is $AdapterCount"
-        Write-Information -MessageData "OS NIC count is $OSNICCount"
-        Write-Information -MessageData  "NIC Data returned from the VMs OS: `n $adapters"
+        Write-Verbose -Message "Config file NICCount is $NICCount"
+        Write-Verbose -Message "Vsphere adapter count is $AdapterCount"
+        Write-Verbose -Message "OS NIC count is $OSNICCount"
+        Write-Verbose -Message  "NIC Data returned from the VMs OS: `n $adapters"
 
 
         #Compares the extracted adapter count to the VM-NIC count before proceeding.
