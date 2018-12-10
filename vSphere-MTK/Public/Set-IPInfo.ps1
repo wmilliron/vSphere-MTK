@@ -23,7 +23,7 @@ function Set-IPInfo{
             Write-Verbose -Message "The VM $VMName exists in $VCName."
         }  
         else {  
-            Write-Host "VM named $VMName does not exist. Exiting..." -ForegroundColor Red
+            Write-Error -Message "VM named $VMName does not exist. Exiting..." -ForegroundColor Red
             Return
         }
     }
