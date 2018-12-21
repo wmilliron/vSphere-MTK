@@ -54,7 +54,13 @@ function Get-IPInfo {
             $DNSServers  = $nic.DNSServerSearchOrder
             $WINS1 = $nic.WINSPrimaryServer
             $WINS2 = $nic.WINSSecondaryServer   
-            $WINS = @($WINS1,$WINS2)         
+            if ([string]::IsNullOrEmpty($WINS1) -and [string]::IsNullOrEmpty($WINS2)){
+                Write-Verbose -Message "No WINS values present"
+                $WINS = ""
+            }
+            else{
+                $WINS = "$WINS1,$WINS2" 
+            }
             $IsDHCPEnabled = $false
             If($nic.DHCPEnabled) {
               $IsDHCPEnabled = $true
@@ -69,7 +75,7 @@ function Get-IPInfo {
             $OutputObj | Add-Member -MemberType NoteProperty -Name Gateway -Value ($DefaultGateway -join ",")      
             $OutputObj | Add-Member -MemberType NoteProperty -Name IsDHCPEnabled -Value $IsDHCPEnabled
             $OutputObj | Add-Member -MemberType NoteProperty -Name DNSServers -Value ($DNSServers -join ",")     
-            $OutputObj | Add-Member -MemberType NoteProperty -Name WINSServers -Value ($WINS -join ",")        
+            $OutputObj | Add-Member -MemberType NoteProperty -Name WINSServers -Value $WINS       
             $OutputObj | Add-Member -MemberType NoteProperty -Name MACAddress -Value $MACAddress
             $OutputObj
             $Output += $OutputObj
