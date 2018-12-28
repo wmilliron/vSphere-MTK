@@ -1,39 +1,35 @@
 # vSphere-MTK
-vSphere Migration Toolkit
-
-## SYNOPSIS
-
-    When provided with a valid CSV, this script will deploy the VMs in the CSV to the VMM Cloud specified according to the provided parameters.
-    The script will also rename the VHDXs to include the name of the VM, instead of just the name from the template.
+The **vSphere Migration Toolkit** is a community-created and supported PowerShell module that provides a set of tools to facilitate the migration of Microsoft Windows workloads into vSphere.
 
 ## DESCRIPTION
+
+### Background
+When migrating workloads running Windows Server operating systems from a physical machine or another hypervisor into vSphere, there are several post-migration tasks that are commonly performed manually to complete the migration procedure.
+This module offers a toolset to facilitate those tasks in order to reduce downtime for the services provided by the workload.
 
 ### Prerequisites
 
         1. Powershell 4.0
-        2. VirtualMachineManager module installed, with proper privileges to the VMM server.
+        2. PowerCLI
+        3. Administrative credentials to the vSphere environment as well as within the OS of the target workload
 
-### Assumptions
+## Available Commands
 
-        1. The templates referenced from VMM include 3 VHDs; the first being the OS, second being pagefile, third being app - Edit designated sections for alterations
-        2. This script assumes each 'Cloud' uses a separate vmswitch, edit the names of those virtual swithces accordingly.
-        3. The combined build time of all virtual machines is less than 4 hours. The cleanup phase starts after all jobs complete, or 4 hours - whichever comes first.
+|Command|Migration Phase|Description|
+|-------|---------------|---|
+|**Get-IPInfo**|Pre-Migration|Collects all IP information from all network adapters, and exports them to a CSV|
+|**Set-IPInfo**|Post-Migration|Injects the IP information harvested from Get-IPInfo into the migrated machine|
+|**Convert-SCSItoParavirtual**|Post-Migration|Converts the SCSI controller used by a VM to the Paravirtual class|
 
-## PARAMETER PathtoCSV
+## Changelog
 
-    Required parameter. Full or relative path to csv file that includes fields: VMName, Template, Cloud, NameofComputer,Description,VMNetwork, OS,
-    CPUs, StartupMem, MinimumMem, and MaximumMem. CSV Provided in Repo
-
-## EXAMPLE
-
-    Usage:
-    > VMDeploy.ps1 -PathtoCSV "C:\VMsToCreate.csv"
+__1.0.0__ First official release with three available commands: Get-IPInfo, Set-IPInfo, and Convert-SCSItoParavirtual
 
 ## NOTES
 
-    Author: wmilliron
-    Date: 11/3/2017
+    Author: Wes Milliron
 
     Future releases will include
-    * Improved error handling
-    * Timeout increase based on number of created VMs
+    - Get-Help information for each cmdlet
+    - Support for running multiple workloads in parallel
+    - Additional cmdlets, including removing absent ("ghost") hardware, etc.
