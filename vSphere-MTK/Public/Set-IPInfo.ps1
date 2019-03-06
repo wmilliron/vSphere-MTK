@@ -16,6 +16,7 @@ function Set-IPInfo{
         }
         else {
             Connect-VIServer
+            $VCName = $global:DefaultVIServers.Name
         }
         #Verify VM Exists
         $Exists = Get-Vm -name $VMName -ErrorAction SilentlyContinue
