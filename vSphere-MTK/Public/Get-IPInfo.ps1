@@ -47,7 +47,7 @@ function Get-IPInfo {
        foreach ($nic in $nics) {
           $nicName = (Get-WmiObject Win32_NetworkAdapter -ComputerName $Computer | Where-Object {$_.DeviceID -eq $nic.Index}).NetConnectionID
           if ($nicName){
-            $IPAddress  = $nic.IpAddress
+            $IPAddress  = $nic.IpAddress | Sort-Object
             $IPAddressCount = ($nic.IPAddress).count
             $SubnetMask  = $nic.IPSubnet[0]
             $DefaultGateway = $nic.DefaultIPGateway
