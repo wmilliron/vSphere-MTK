@@ -31,14 +31,20 @@ function Set-IPInfo{
         #Verifies the provided configuration path
         if (Test-Path $ConfigurationPath){
             $IPData = Import-Csv -Path $ConfigurationPath
+            Write-Verbose -Message "The CSV from $ConfigurationPath has been imported successfully"
         }
         else {
             Write-Error -Message "$ConfigurationPath cannot be reached. Exiting..."
             Return
         }
 
-        $NICCount = $IPData.count
+        $NICCount = @($IPData).count
         $AdapterCount = (Get-NetworkAdapter -VM $VMName).count
+
+        #The below values are used for debugging
+        Write-Verbose -Message "The NIC count from the imported CSV is $NICCount"
+        Write-Verbose -Message "The NIC count for $VMName in vCenter is $AdapterCount"
+
         if ($NICCount -ne $AdapterCount){
             Write-Error -Message "The number of adapters required by the provided configuration file does not match the number of adapters on the VM."
             return
@@ -59,7 +65,7 @@ function Set-IPInfo{
         $Adapters = (Invoke-VMScriptPlus @Invoke -ErrorAction Stop).ScriptOutput | ConvertFrom-Csv
         
         #The below values are used for debugging
-        $OSNICCount = $Adapters.count
+        $OSNICCount = @($Adapters).count
         Write-Verbose -Message "Config file NICCount is $NICCount"
         Write-Verbose -Message "Vsphere adapter count is $AdapterCount"
         Write-Verbose -Message "OS NIC count is $OSNICCount"
@@ -67,14 +73,14 @@ function Set-IPInfo{
 
 
         #Compares the extracted adapter count to the VM-NIC count before proceeding.
-        if ($NICCount -ne $Adapters.count){
+        if ($NICCount -ne $OSNICCount){
             Write-Error -Message "The number of adapters required by the provided configuration file does not match the number of adapters queried from inside the Windows vm."
             return
         }
         
         #Attempts to set IP configuration
         try{
-            for ($i=0; $i -lt $Adapters.count; $i++){
+            for ($i=0; $i -lt $OSNICCount; $i++){
                 $NICName = ($IPData[$i].NICName)
                 #Puts the IP information into a string that looks like an array to be passed through the Invoke funtion into the guest OS
                 $ip = ($IPData[$i].IPAddress)
@@ -86,7 +92,7 @@ function Set-IPInfo{
                 #This one requires one mask for each IP, so a counter is used to iterate the string
                 $subnet = ($IPData[$i].SubnetMask)
                 $mask = "@(`"$subnet`""
-                for ($c=1; $c -lt $IPs.count; $c++){
+                for ($c=1; $c -lt @($IPs).count; $c++){
                     $mask += ",`"$subnet`""
                 }
                 $mask = $mask + ")"
