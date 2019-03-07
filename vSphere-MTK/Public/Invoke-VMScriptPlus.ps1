@@ -157,6 +157,37 @@ class MyOBN:System.Management.Automation.ArgumentTransformationAttribute {
     Process {
     foreach ($vmInstance in $VM) {
     # Preamble
+
+    ############################################
+    function Ignore-SelfSignedCerts
+    {
+    try
+    {
+    Write-Verbose -Message "Adding TrustAllCertsPolicy type."
+    Add-Type -TypeDefinition @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy
+    {
+    public bool CheckValidationResult(
+    ServicePoint srvPoint, X509Certificate certificate,
+    WebRequest request, int certificateProblem)
+    {
+    return true;
+    }
+    }
+"@
+    Write-Verbose -Message "TrustAllCertsPolicy type added."
+    }
+    catch
+    {
+    Write-Host $_ -ForegroundColor "Yellow"
+    }
+    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+    }
+    Ignore-SelfSignedCerts;
+    ############################################
+
     if ($vmInstance.PowerState -ne 'PoweredOn') {
     Write-Error "VM $($vmInstance.Name) is not powered on"
     continue

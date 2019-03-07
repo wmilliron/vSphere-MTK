@@ -53,6 +53,7 @@ function Set-IPInfo{
         #Harvests the Network Adapter data from the VM
         $cred = Get-Credential -Message "Please enter credentials with administrative access to $VMName."
         $code = @'
+            Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Force
             Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object{$_.IPEnabled -eq $true} | Select-Object Index,Description,IPAddress,IPEnabled | ConvertTo-CSV -NoTypeInformation
 '@
         $Invoke = @{
@@ -70,8 +71,7 @@ function Set-IPInfo{
         Write-Verbose -Message "Config file NICCount is $NICCount"
         Write-Verbose -Message "Vsphere adapter count is $AdapterCount"
         Write-Verbose -Message "OS NIC count is $OSNICCount"
-        Write-Verbose -Message "NIC Data returned from the VMs OS: `n $adapters"
-
+        Write-Verbose -Message "NIC Data returned from the VMs OS: `n $Adapters"
 
         #Compares the extracted adapter count to the VM-NIC count before proceeding.
         if ($NICCount -ne $OSNICCount){
