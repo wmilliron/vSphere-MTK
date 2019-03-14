@@ -7,7 +7,18 @@ function Set-IPInfo{
     begin{
         # Performs connection and parameter checks before proceeding with function
         
-        Import-Module VMware.PowerCLI
+        #Verifies the PowerCLI module is loaded
+        if(-not(Get-Module -name VMware.PowerCLI)){ 
+            if(Get-Module -ListAvailable | Where-Object {$_.name -eq "VMware.PowerCLI"}){ 
+                Import-Module -Name VMware.PowerCLI 
+            }
+            else{
+                Write-Error -Message "The VMware.PowerCLI module is not available to be imported. Run Install-Module VMware.PowerCLI to install the module from the online PowerShell Gallery."
+            }
+        }
+        else{
+            Write-Verbose -Message "VMware.PowerCLI module is already loaded."
+        }
     
         #Ensure connection to vSphere
         if ($global:DefaultVIServers.IsConnected -eq $True){
@@ -53,8 +64,12 @@ function Set-IPInfo{
         #Harvests the Network Adapter data from the VM
         $cred = Get-Credential -Message "Please enter credentials with administrative access to $VMName."
         $code = @'
-            Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Force
-            Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object{$_.IPEnabled -eq $true} | Select-Object Index,Description,IPAddress,IPEnabled | ConvertTo-CSV -NoTypeInformation
+            try{
+                Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object{$_.IPEnabled -eq $true} | Select-Object Index,Description,IPAddress,IPEnabled | ConvertTo-CSV -NoTypeInformation -ErrorAction Stop
+            }
+            catch{
+                Throw
+            }
 '@
         $Invoke = @{
             VM = "$VMName"
@@ -63,19 +78,24 @@ function Set-IPInfo{
             GuestUser = $cred.UserName
             GuestPassword = $cred.Password
         }
-
-        $Adapters = (Invoke-VMScriptPlus @Invoke -ErrorAction Stop).ScriptOutput | ConvertFrom-Csv
+        try{
+            $Adapters = (Invoke-VMScriptPlus @Invoke -ErrorAction Stop).ScriptOutput | ConvertFrom-Csv -ErrorAction Stop
+        }
+        catch{
+            Throw
+        }
         
         #The below values are used for debugging
         $OSNICCount = @($Adapters).count
         Write-Verbose -Message "Config file NICCount is $NICCount"
         Write-Verbose -Message "Vsphere adapter count is $AdapterCount"
         Write-Verbose -Message "OS NIC count is $OSNICCount"
-        Write-Verbose -Message "NIC Data returned from the VMs OS: `n $Adapters"
+        Write-Verbose -Message "NIC Data returned from the VMs OS: $Adapters"
 
         #Compares the extracted adapter count to the VM-NIC count before proceeding.
         if ($NICCount -ne $OSNICCount){
             Write-Error -Message "The number of adapters required by the provided configuration file does not match the number of adapters queried from inside the Windows vm."
+            $Adapters
             return
         }
         
