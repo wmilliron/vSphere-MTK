@@ -5,7 +5,23 @@ function Get-IPInfo {
      [Parameter()][String[]]$ExportPath
     )
     
-    begin {}
+    begin {
+        #Ensures the remote machine execution policy will allow the Set-IPInfo cmdlet to run post conversion
+        try{
+            Invoke-Command -ComputerName $ComputerName -ErrorAction Stop -ScriptBlock {
+                if((Get-ExecutionPolicy) -eq "Restricted"){
+                    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine -Force
+                }
+                else{
+                    $ExecutionPolicy = Get-ExecutionPolicy
+                    Write-Verbose -Message "The execution policy on $ComputerName is set to $ExecutionPolicy"
+                }
+            }
+        }
+        catch{
+            Write-Warning -Message "Unable to set the Execution Policy on the remote system $ComputerName. Ensure the remote system has the remote execution policy set to RemoteSigned by running 'Set-ExecutionPolicy RemoteSigned -Scope LocalMachine -Force'"
+        }
+    }
     process {
         #Sets the output directory based on parameter input, if any
         $CurrentDir = ((Get-Location).Path + "\")
