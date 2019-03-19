@@ -46,8 +46,7 @@ function Convert-SCSItoParavirtual {
         if ($Exists){  
             $vm = get-vm -name $VMName
             $vmview = $vm | Get-View
-            $DNSName = ($vm).Guest.HostName
-            if ([bool](Test-WSMan -ComputerName $DNSName -ErrorAction SilentlyContinue)  ) {
+            if ([bool](Test-WSMan -ComputerName ($vm.name) -ErrorAction SilentlyContinue)  ) {
                 Write-Host "The VM $VMName exists and is reachable" -ForegroundColor Green
             }
             else {
