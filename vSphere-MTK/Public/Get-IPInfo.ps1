@@ -51,55 +51,56 @@ function Get-IPInfo {
             $ExportPath = $CurrentDir
             write-host "IP Configration(s) will be exported to $ExportPath"
         }
-     foreach ($Computer in $ComputerName) {
-      if(Test-Connection -ComputerName $Computer -Count 1 -ea 0) {
-       try {
-        $nics = Get-WmiObject Win32_NetworkAdapterConfiguration -ComputerName $Computer -EA Stop | Where-Object {$_.IPEnabled}
-        $Output = @()
-       } catch {
-            Write-Warning "Error occurred while querying $computer."
-            Continue
-       }
-       foreach ($nic in $nics) {
-          $nicName = (Get-WmiObject Win32_NetworkAdapter -ComputerName $Computer | Where-Object {$_.DeviceID -eq $nic.Index}).NetConnectionID
-          if ($nicName){
-            $IPAddress  = $nic.IpAddress | Sort-Object
-            $IPAddressCount = ($nic.IPAddress).count
-            $SubnetMask  = $nic.IPSubnet[0]
-            $DefaultGateway = $nic.DefaultIPGateway
-            $DNSServers  = $nic.DNSServerSearchOrder
-            $WINS1 = $nic.WINSPrimaryServer
-            $WINS2 = $nic.WINSSecondaryServer   
-            if ([string]::IsNullOrEmpty($WINS1) -and [string]::IsNullOrEmpty($WINS2)){
-                Write-Verbose -Message "No WINS values present"
-                $WINS = ""
+        foreach ($Computer in $ComputerName) {
+            if(Test-Connection -ComputerName $Computer -Count 1 -ea 0) {
+                try {
+                $nics = Get-WmiObject Win32_NetworkAdapterConfiguration -ComputerName $Computer -EA Stop | Where-Object {$_.IPEnabled}
+                $Output = @()
+                }
+                catch {
+                    Write-Warning "Error occurred while querying $computer."
+                    Continue
+                }
+                foreach ($nic in $nics) {
+                    $nicName = (Get-WmiObject Win32_NetworkAdapter -ComputerName $Computer | Where-Object {$_.DeviceID -eq $nic.Index}).NetConnectionID
+                    if ($nicName){
+                        $IPAddress  = $nic.IpAddress | Sort-Object
+                        $IPAddressCount = ($nic.IPAddress).count
+                        $SubnetMask  = $nic.IPSubnet[0]
+                        $DefaultGateway = $nic.DefaultIPGateway
+                        $DNSServers  = $nic.DNSServerSearchOrder
+                        $WINS1 = $nic.WINSPrimaryServer
+                        $WINS2 = $nic.WINSSecondaryServer   
+                        if ([string]::IsNullOrEmpty($WINS1) -and [string]::IsNullOrEmpty($WINS2)){
+                            Write-Verbose -Message "No WINS values present"
+                            $WINS = ""
+                        }
+                        else{
+                            $WINS = "$WINS1,$WINS2" 
+                        }
+                        $IsDHCPEnabled = $false
+                        If($nic.DHCPEnabled) {
+                        $IsDHCPEnabled = $true
+                        }
+                        $MACAddress  = $nic.MACAddress
+                        $OutputObj  = New-Object -Type PSObject
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name ComputerName -Value $Computer.ToUpper()
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name NICName -Value $nicName
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name IPAddress -Value ($IPAddress -join ",")
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name IPAddressCount -Value $IPAddressCount
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name SubnetMask -Value $SubnetMask
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name Gateway -Value ($DefaultGateway -join ",")      
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name IsDHCPEnabled -Value $IsDHCPEnabled
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name DNSServers -Value ($DNSServers -join ",")     
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name WINSServers -Value $WINS       
+                        $OutputObj | Add-Member -MemberType NoteProperty -Name MACAddress -Value $MACAddress
+                        $OutputObj
+                        $Output += $OutputObj
+                    }
+                }
+                $Output | Export-Csv -Path ($ExportPath.Trim() + "$Computer-IPInfo.csv") -NoTypeInformation
             }
-            else{
-                $WINS = "$WINS1,$WINS2" 
-            }
-            $IsDHCPEnabled = $false
-            If($nic.DHCPEnabled) {
-              $IsDHCPEnabled = $true
-            }
-            $MACAddress  = $nic.MACAddress
-            $OutputObj  = New-Object -Type PSObject
-            $OutputObj | Add-Member -MemberType NoteProperty -Name ComputerName -Value $Computer.ToUpper()
-            $OutputObj | Add-Member -MemberType NoteProperty -Name NICName -Value $nicName
-            $OutputObj | Add-Member -MemberType NoteProperty -Name IPAddress -Value ($IPAddress -join ",")
-            $OutputObj | Add-Member -MemberType NoteProperty -Name IPAddressCount -Value $IPAddressCount
-            $OutputObj | Add-Member -MemberType NoteProperty -Name SubnetMask -Value $SubnetMask
-            $OutputObj | Add-Member -MemberType NoteProperty -Name Gateway -Value ($DefaultGateway -join ",")      
-            $OutputObj | Add-Member -MemberType NoteProperty -Name IsDHCPEnabled -Value $IsDHCPEnabled
-            $OutputObj | Add-Member -MemberType NoteProperty -Name DNSServers -Value ($DNSServers -join ",")     
-            $OutputObj | Add-Member -MemberType NoteProperty -Name WINSServers -Value $WINS       
-            $OutputObj | Add-Member -MemberType NoteProperty -Name MACAddress -Value $MACAddress
-            $OutputObj
-            $Output += $OutputObj
-          }
         }
-        $Output | Export-Csv -Path ($ExportPath.Trim() + "$Computer-IPInfo.csv") -NoTypeInformation
-      }
-     }
     }
     end {}
 }
